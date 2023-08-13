@@ -7,7 +7,7 @@
           <el-button type="text" size="mini" v-if="data.catLevel <= 2" @click="() => append(data)">
             添加
           </el-button>
-          <el-button type="text" size="mini" v-if="data.catLevel <= 2" @click="() => update(data)">
+          <el-button type="text" size="mini" @click="() => update(data)">
             更新
           </el-button>
           <el-button type="text" size="mini" v-if="data.childrens.length == 0" @click="() => remove(node, data)">
@@ -16,7 +16,7 @@
         </span>
       </span>
     </el-tree>
-    <el-dialog title="提示" :visible.sync="dialogVisible" width="30%" :close-on-click-modal="false">
+    <el-dialog :title="dialogType?`新增`:`修改`" :visible.sync="dialogVisible" width="30%" :close-on-click-modal="false">
       <el-form :model="categoryForm" label-position="top">
         <el-form-item label="类别名称" :label-width="formLabelWidth" >
           <el-input v-model="categoryForm.name" autocomplete="off"></el-input>
@@ -30,7 +30,7 @@
       </el-form>
       <span slot="footer" class="dialog-footer">
         <el-button @click="dialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="addDialog">确 定</el-button>
+        <el-button type="primary" @click="submit">确 定</el-button>
       </span>
     </el-dialog>
   </div>
@@ -41,6 +41,7 @@
 export default {
   data() {
     return {
+      dialogType:false,// true 新增，false修改
       data: [],
       defaultProps: {
         children: 'childrens',
@@ -67,6 +68,12 @@ export default {
       this.categoryForm.catLevel = data.catLevel + 1
       this.categoryForm.showStatus = 1
       this.categoryForm.sort = 0
+
+      this.categoryForm.catId = null;
+      this.categoryForm.icon = null;
+      this.categoryForm.productUnit = null;
+
+      this.dialogType = true
     },
     addDialog(){
       this.$http({
@@ -84,6 +91,50 @@ export default {
           this.expandKeys = [this.categoryForm.parentCid]
         }
       })
+    },
+    update(data){
+      // 获取最新的内容，防止其他用户更改数据后，展示错误
+      this.$http({
+        url: this.$http.adornUrl(`/product/category/info/${data.catId}`),
+        method: 'post',
+        data: this.$http.adornData(this.categoryForm,false)
+      }).then(({data}) => {
+        this.categoryForm.name = data.category.name;
+        this.categoryForm.productUnit = data.category.productUnit
+        this.categoryForm.icon = data.category.icon
+        this.categoryForm.catLevel = data.category.catLevel
+        // 填充更新数据的id
+        this.categoryForm.catId = data.category.catId;
+        this.categoryForm.showStatus = data.category.showStatus
+        this.categoryForm.sort = 0
+      })
+      this.dialogVisible = true
+      this.dialogType = false
+    },
+    updateDialog(){
+      this.$http({
+        url: this.$http.adornUrl('/product/category/update'),
+        method: 'post',
+        data:this.$http.adornData(this.categoryForm) 
+      }).then(({data}) => {
+        if(data && data.code === 0) {
+          this.$message({
+            message:"数据修改成功",
+            type:"success"
+          });
+          this.dialogVisible=false
+          this.getCategory()
+          this.expandKeys = [this.categoryForm.catId]
+        }
+      })
+    },
+
+    submit(){
+      if (this.dialogType) {
+        this.addDialog();
+      }else{
+        this.updateDialog();
+      }
     },
 
     remove(node, data) {
