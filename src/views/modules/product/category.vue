@@ -1,6 +1,7 @@
 <template>
   <div>
-    <el-tree :data="data" :props="defaultProps" show-checkbox node-key="catId" :default-expanded-keys=expandKeys>
+    <el-tree :data="data" :props="defaultProps" show-checkbox node-key="catId" :default-expanded-keys=expandKeys :draggable="true"
+      :allow-drop="allowDrop">
       <span class="custom-tree-node" slot-scope="{ node, data }">
         <span>{{ node.label }}</span>
         <span>
@@ -57,7 +58,8 @@ export default {
         icon: '',
         productUnit: ''
       },
-      formLabelWidth: '120px'
+      formLabelWidth: '120px',
+      maxLevel: 0
     };
   },
   methods: {
@@ -172,6 +174,28 @@ export default {
         this.data = data.data
       })
     },
+    // 判断拖拽节点是否可以拖拽
+    // 'prev'、'inner' 和 'next'，分别表示放置在目标节点前、插入至目标节点和放置在目标节点后
+    allowDrop(draggingNode, dropNode, type){
+      console.log(draggingNode, dropNode, type)
+      this.countLevel(draggingNode);
+      console.log(this.maxLevel)
+      let deep = Math.abs(this.maxLevel - dropNode.level) + 1
+      if ( type == 'inner') {
+        return deep + dropNode.level <= 3
+      }
+      return deep + dropNode.parent.level <= 3
+    },
+    countLevel(draggingNode){
+      if(draggingNode.childNodes != null && draggingNode.childNodes.length > 0) {
+        for(let i=0;i < draggingNode.childNodes.length;i++) {
+            if (draggingNode.childNodes[i].level > this.maxLevel) {
+              this.maxLevel = draggingNode.childNodes[i].level
+            }
+            this.countLevel(draggingNode.childNodes[i],this.maxLevel)
+        }
+      }
+    }
   
   }, created() {
     this.getCategory()
