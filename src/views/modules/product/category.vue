@@ -2,8 +2,9 @@
   <div>
     <el-switch v-model="draggable" active-text="开启拖拽" inactive-text="关闭拖拽">
     </el-switch>
-    <el-button v-if="draggable" @click="updateDropData">批量更新</el-button>
-    <el-tree :data="data" :props="defaultProps" show-checkbox node-key="catId" :default-expanded-keys=expandKeys
+    <el-button type="primary" v-if="draggable" @click="updateDropData">批量更新</el-button>
+    <el-button type="danger" @click="batchDeleteData">批量删除</el-button>
+    <el-tree  ref="tree" :data="data" :props="defaultProps" show-checkbox node-key="catId" :default-expanded-keys=expandKeys
       :draggable="draggable" :allow-drop="allowDrop" @node-drop="handleDrop">
       <span class="custom-tree-node" slot-scope="{ node, data }">
         <span>{{ node.label }}</span>
@@ -273,6 +274,31 @@ export default {
           this.countLevel(draggingNode.childNodes[i])
         }
       }
+    },
+    batchDeleteData(){
+      // 批量删除选中节点
+      let checkedNodes = [];
+      let checkNodes = this.$refs.tree.getCheckedNodes(false,false)
+      console.log("aa",checkNodes)
+      for(let i=0;i< checkNodes.length;i++){
+        checkedNodes.push(checkNodes[i].catId);
+      }
+      this.$http({
+        url: this.$http.adornUrl("/product/category/delete"),
+        method: "post",
+        data: this.$http.adornData(checkedNodes, false)
+      }).then(({ data }) => {
+        if (data && data.code === 0) {
+          this.$message({
+            message: "批量删除成功",
+            type: "success"
+          });
+          this.getCategory();
+        } else {
+          this.$message.error(data.msg);
+        }
+      })
+
     }
 
   }, created() {
